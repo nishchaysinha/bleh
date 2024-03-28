@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webcam Object Detection</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+</head>
+<body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <script>
+        const socket = io();
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                video.play();
+            });
+
+        video.addEventListener('play', () => {
+            setInterval(() => {
+                context.drawImage(video, 0, 0, 640, 480);
+                const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                socket.emit('video_feed', { data: imgData.split(',')[1] });
+            }, 100);
+        });
+
+        socket.on('processed_feed', data => {
+            const img = new Image();
+            img.src = 'data:image/jpeg;base64,' + data.data;
+            img.onload = () => {
+                context.drawImage(img, 0, 0);
+            };
+        });
+    </script>
+</body>
+</html>
